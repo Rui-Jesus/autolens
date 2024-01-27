@@ -6,4 +6,4 @@ venv-fastai/
 __pycache__/
 tests/models/
 tests/resources/*
-.idea
+.idea/
