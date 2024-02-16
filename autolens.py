@@ -8,7 +8,7 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description='Example script.')
 
-    parser.add_argument('autolens_mode', type=str, help='TODO ana', choices=["ludwig", "fastai"]) # options
+    parser.add_argument('autolens_mode', type=str, help='TODO ana', choices=["ludwig", "fastai", "autokeras", "autogluon"]) # options
     parser.add_argument('dataset_path', type=str, help='dataset path TODO ana')
     # ADD abstraction 
     parser.add_argument('--target_size', type=tuple, default=(255,255), help='dataset size')

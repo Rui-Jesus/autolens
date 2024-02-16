@@ -1,9 +1,11 @@
+import time
+import autokeras as ak
+import random
+
 import tensorflow as tf
 import numpy as np
 import time
-import keras
 from keras_tuner import Objective
-import random
 
 from autokeras import ImageClassifier
 
@@ -39,13 +41,8 @@ def main(
     # Handling folder created by AutoKeras
     replace_classifier_folder()
 
-    print('Loading Data')
-    dataset = handle_dataset.check(path_dataset)
-    n_data = dataset.n_data
-    data = dataset.to_pixel(test_seed=random.randint(1, 10000), 
-                            val_seed=random.randint(1, 10000),
-                            test_size=test_size,
-                            valid_size=valid_size)
+    # TODO Check this, make it configurable
+    batch_size = 32
 
     print('Building Architecture')
     model = ImageClassifier(
@@ -57,50 +54,34 @@ def main(
         objective=Objective('val_auc', direction="max") 
         )
 
-    histories = []
-    scores = []
+    print('Loading Data')
+    
+    train_data = ak.image_dataset_from_directory(
+        path_dataset,
+        # Use 20% data as testing data.
+        validation_split=valid_size,
+        subset="training",
+        # Set seed to ensure the same split when loading testing data.
+        seed=random.randint(1, 10000),
+        image_size=(150, 150),
+        batch_size=batch_size,
+    )
+
+    test_data = ak.image_dataset_from_directory(
+        path_dataset,
+        validation_split=test_size,
+        subset="validation",
+        seed=random.randint(1, 10000),
+        image_size=(150, 150),
+        batch_size=batch_size,
+    )
+
     predictions = []
     prob_predictions = []
-    if steps == 1:
-        print("Training step: ", steps)
-        print('Fitting Model')
-        history = model.fit(
-            data[0][0],
-            data[1][0],
-            validation_data=(data[0][2], data[1][2]), # or validation_split=0.15,
-            epochs=1
-            ) 
 
-        histories.append(history)
-
-        print('Evaluating Model')
-        score = model.evaluate(data[0][1], data[1][1])
-        scores.append(score)
-
-    else: # in case of bad memory management
-        batch_size = round(n_data/steps)
-        batch = 0
-        for i in range(steps):
-            if i == steps-1 and batch_size is not None:
-                # last step
-                batch_size = n_data - batch
-
-            print("Training step: ", i+1)
-            data = dataset.to_pixel(batch=(batch, batch_size), target_size=target_size)
-            history = model.fit(
-                data[0][0],
-                data[1][0],
-                validation_data=(data[0][2], data[1][2]), # or validation_split=0.15,
-                epochs=1
-                )
-            
-            histories.append(history)
-
-            print('Evaluating Model')
-            score = model.evaluate(data[0][1], data[1][1])
-            scores.append(score)
-
-            batch += batch_size
+    print('Fitting Model')
+    history = model.fit(train_data, epochs=1)
+    score = model.evaluate(test_data)
 
     # Model is not saved automatically
     best_model = model.export_model()
@@ -108,21 +89,21 @@ def main(
             
     print('Predictions')
     # Predicted labels
-    y_predic = (model.predict(data[0][1])).astype("int32")
+    y_predic = model.predict(test_data).astype("int32")
     y_predic = y_predic.flatten()
 
     predictions.append(y_predic)
     predictions = predictions[0].tolist()
 
     # Probabilities of the predicted labels
-    for i in range(0, len(data[0][1]), 32):
-        y_prob_int = model.export_model()(data[0][1][i:i+32]) # works as tensorflow keras model
+    for i in range(0, len(test_data[0][1]), 32):
+        y_prob_int = model.export_model()(test_data[0][1][i:i+32]) # works as tensorflow keras model
         y_prob_int = np.array(y_prob_int).flatten().tolist()
         y_prob_int_rounded = [round(prob, 4) for prob in y_prob_int]
         prob_predictions.extend(y_prob_int_rounded)
 
     # Actual labels
-    y_test = data[1][1].tolist()
+    y_test = test_data[1][1].tolist()
     print('true labels', len(y_test))
 
     print('Time --> Stop')
@@ -130,7 +111,6 @@ def main(
     print('Time:', elapsed_time)
 
     print('Saving Results...')
-    all_results = save_results(histories, scores, predictions, prob_predictions, y_test, elapsed_time)
+    all_results = save_results(history, score, predictions, prob_predictions, y_test, elapsed_time)
     all_results.to_csv('resources/autokeras_results.csv', mode='a', index=False)
     print('Results Ready!')
-

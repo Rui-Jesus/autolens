@@ -2,6 +2,7 @@ __version__="0.1.0"
 
 import argparse
 import subprocess
+import platform
 from subprocess import DEVNULL, STDOUT
 import os
 import venv
@@ -22,12 +23,15 @@ def maybe_prepare_requirements(mode, cache_dir):
     
     venv_name = f"venv-{mode}"
     venv_path = os.path.join(cache_dir, venv_name)
+    os_name = platform.system()
     
     # prepare a venv for the specific package if its not available
     if not os.path.exists(venv_path):
         run_external_command(f"{sys.executable} -m venv {venv_path}")
         #venv.create(venv_path)
         pip_command = os.path.join(venv_path,"bin","pip")
+        if os_name == "Windows":
+            pip_command = os.path.join(venv_path,"Scripts","pip.exe")
         run_external_command(f"{pip_command} install --upgrade pip")
         
         run_external_command(f"{pip_command} install -r requirements_{mode}.txt")
@@ -57,11 +61,19 @@ def autolens(autolens_mode,
     module = importlib.import_module(f"autolens.{package_name}.run")
     automl_main = getattr(module, "main")
     
-    automl_main(dataset_path,
-                steps=1,
-                target_size=target_size,
-                test_size=test_percentage,
-                valid_size=val_percentage)
+    if package_name == "AUTOGLUON" or package_name == "AUTOKERAS":
+
+        automl_main("", dataset_path,
+                    steps=1,
+                    target_size=target_size,
+                    test_size=test_percentage,
+                    valid_size=val_percentage)
+    else:
+        automl_main(dataset_path,
+                    steps=1,
+                    target_size=target_size,
+                    test_size=test_percentage,
+                    valid_size=val_percentage)
     
     # delete "metadata" which is not metadata but ana says its metadata
     if clean_metadata:

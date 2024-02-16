@@ -88,7 +88,7 @@ def main(path_metadata: str,
     learn.unfreeze()
 
     print('Fitting Model')
-    Find once again the appropriate lr
+    #Find once again the appropriate lr
     lr_min_2, lr_steep_2, lr_slide_2, lr_valley_2 = learn.lr_find(suggest_funcs=(minimum, steep, slide, valley))
     print('lr_min', lr_min_2)
 

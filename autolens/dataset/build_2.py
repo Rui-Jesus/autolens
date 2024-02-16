@@ -25,11 +25,12 @@ class Dataset:
         for root, dir, files in os.walk(path_dataset): ######
             for file in files:
                 label = os.path.basename(root)
+                print(label)
                 filepath = os.path.join(root, file)
                 filenames.append(filepath)
                 labels.append(label)
 
-        metadata = pd.DataFrame({'filename': filenames, 'label': label})
+        metadata = pd.DataFrame({'filename': filenames, 'label': labels})
         n_data = len(metadata)
         self.n_data = n_data
 

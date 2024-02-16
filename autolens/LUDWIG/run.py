@@ -1,9 +1,7 @@
-#print("???")
 import time
 import random
 
 from ludwig.api import LudwigModel
-#print("here")
 import logging
 
 from autolens.dataset.build_2 import Dataset
@@ -47,6 +45,7 @@ def main(path_dataset: str,
                                         test_seed=random.randint(1, 10000),
                                         valid_seed=random.randint(1, 10000))
 
+    print(test)
     print('Building Architecture')
     config = {
         'input_features': [
@@ -56,7 +55,7 @@ def main(path_dataset: str,
             'preprocessing': {
             'num_processes': 4
                 },
-                'encoder': 'stacked_cnn'
+                'encoder': 'efficientnet'
             }
         ],
         'output_features': [
@@ -66,7 +65,7 @@ def main(path_dataset: str,
             }
         ],
         'training': {
-            'epochs':5 
+            'epochs':15 
             },
         'hyperopt': {
             'parameters': {},
